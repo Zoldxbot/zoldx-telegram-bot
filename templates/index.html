@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ZoldX Dashboard</title>
+</head>
+<body>
+  <h1>ZoldX Admin Dashboard</h1>
+  <p>Total Users: {{ total_users }}</p>
+
+  <h3>Top Holders</h3>
+  <ul>
+    {% for u, d in top %}
+      <li>{{ d.balance }} ZOLDX</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
