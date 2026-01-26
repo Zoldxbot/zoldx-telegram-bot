@@ -1,12 +1,15 @@
 import json
 import os
+import time
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# 🔴 BOT TOKEN (Already Added)
+# 🔐 BOT SETTINGS
 BOT_TOKEN = "8065897916:AAEirR0VhKkCiYurHD2p_NW75oqMXCGKqBU"
+ADMIN_ID = "8065897916"   # ✅ YOUR ADMIN ID FIXED
 
 DATA_FILE = "users.json"
+DAY = 86400  # 24 hours
 
 # ---------- DATABASE ----------
 def load_data():
@@ -21,65 +24,121 @@ def save_data(data):
 
 users = load_data()
 
-# ---------- COMMANDS ----------
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-
-    if user_id not in users:
-        users[user_id] = {
+def get_user(uid):
+    if uid not in users:
+        users[uid] = {
             "balance": 0,
-            "airdrop": False,
-            "referrals": 0
+            "airdrop_time": 0,
+            "referrals": 0,
+            "withdraw": 0
         }
+    return users[uid]
 
-        # Referral check
-        if context.args:
-            ref_id = context.args[0]
-            if ref_id in users and ref_id != user_id:
-                users[ref_id]["balance"] += 20
-                users[ref_id]["referrals"] += 1
+# ---------- USER COMMANDS ----------
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    get_user(uid)
+
+    if context.args:
+        ref = context.args[0]
+        if ref in users and ref != uid:
+            users[ref]["balance"] += 20
+            users[ref]["referrals"] += 1
 
     save_data(users)
 
     await update.message.reply_text(
-        "🚀 Welcome to ZoldX Coin Bot\n\n"
-        "Commands:\n"
+        "🚀 ZoldX Coin Bot\n\n"
         "/balance - Check balance\n"
-        "/airdrop - Free coins (1 time)\n"
-        "/invite - Get referral link"
+        "/airdrop - Daily free coins\n"
+        "/invite - Referral link\n"
+        "/leaderboard - Top users\n"
+        "/withdraw amount"
     )
 
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    bal = users.get(user_id, {}).get("balance", 0)
-    await update.message.reply_text(f"💰 Your balance: {bal} ZOLDX")
+    u = get_user(str(update.effective_user.id))
+    await update.message.reply_text(f"💰 Balance: {u['balance']} ZOLDX")
 
 async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
+    uid = str(update.effective_user.id)
+    u = get_user(uid)
+    now = time.time()
 
-    if users[user_id]["airdrop"]:
-        await update.message.reply_text("❌ Airdrop already claimed!")
+    if now - u["airdrop_time"] < DAY:
+        left = int((DAY - (now - u["airdrop_time"])) / 3600)
+        await update.message.reply_text(f"⏳ Next airdrop in {left} hours")
         return
 
-    users[user_id]["balance"] += 100
-    users[user_id]["airdrop"] = True
+    u["balance"] += 50
+    u["airdrop_time"] = now
     save_data(users)
 
-    await update.message.reply_text("🎁 Airdrop claimed! +100 ZOLDX")
+    await update.message.reply_text("🎁 Daily airdrop received: +50 ZOLDX")
 
 async def invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    link = f"https://t.me/ZoldX_bot?start={user_id}"
+    uid = str(update.effective_user.id)
+    link = f"https://t.me/ZoldX_bot?start={uid}"
+    await update.message.reply_text(f"👥 Invite friends & earn 20 ZOLDX:\n{link}")
+
+async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    top = sorted(users.items(), key=lambda x: x[1]["balance"], reverse=True)[:10]
+    msg = "🏆 TOP 10 HOLDERS\n\n"
+    for i, (_, d) in enumerate(top, 1):
+        msg += f"{i}. {d['balance']} ZOLDX\n"
+    await update.message.reply_text(msg)
+
+async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    if not context.args:
+        await update.message.reply_text("❌ Use: /withdraw amount")
+        return
+
+    amount = int(context.args[0])
+    u = get_user(uid)
+
+    if amount > u["balance"]:
+        await update.message.reply_text("❌ Insufficient balance")
+        return
+
+    u["balance"] -= amount
+    u["withdraw"] += amount
+    save_data(users)
+
     await update.message.reply_text(
-        f"👥 Invite friends & earn 20 ZOLDX each!\n\n{link}"
+        f"✅ Withdraw request sent: {amount} ZOLDX\nAdmin will review"
     )
 
-# ---------- BOT SETUP ----------
+# ---------- ADMIN COMMANDS ----------
+
+async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_user.id) != ADMIN_ID:
+        return
+    uid, amt = context.args
+    get_user(uid)["balance"] += int(amt)
+    save_data(users)
+    await update.message.reply_text("✅ Coins added successfully")
+
+async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_user.id) != ADMIN_ID:
+        return
+    uid, amt = context.args
+    get_user(uid)["balance"] -= int(amt)
+    save_data(users)
+    await update.message.reply_text("❌ Coins removed successfully")
+
+# ---------- BOT START ----------
+
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("balance", balance))
 app.add_handler(CommandHandler("airdrop", airdrop))
 app.add_handler(CommandHandler("invite", invite))
+app.add_handler(CommandHandler("leaderboard", leaderboard))
+app.add_handler(CommandHandler("withdraw", withdraw))
+app.add_handler(CommandHandler("add", add))
+app.add_handler(CommandHandler("remove", remove))
 
 app.run_polling()
