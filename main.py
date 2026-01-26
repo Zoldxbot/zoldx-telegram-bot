@@ -4,9 +4,9 @@ import time
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# 🔐 BOT SETTINGS
-BOT_TOKEN = "8065897916:AAEirR0VhKkCiYurHD2p_NW75oqMXCGKqBU"
-ADMIN_ID = "8065897916"   # ✅ YOUR ADMIN ID FIXED
+# 🔐 NEW BOT TOKEN (UPDATED)
+BOT_TOKEN = "8065897916:AAFaXXs2fQaYHz9XuYxnSbRtSJEb6zPR1z8"
+ADMIN_ID = "8065897916"   # ✅ YOUR ADMIN ID
 
 DATA_FILE = "users.json"
 DAY = 86400  # 24 hours
@@ -80,7 +80,9 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
     link = f"https://t.me/ZoldX_bot?start={uid}"
-    await update.message.reply_text(f"👥 Invite friends & earn 20 ZOLDX:\n{link}")
+    await update.message.reply_text(
+        f"👥 Invite friends & earn 20 ZOLDX:\n{link}"
+    )
 
 async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top = sorted(users.items(), key=lambda x: x[1]["balance"], reverse=True)[:10]
@@ -118,7 +120,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid, amt = context.args
     get_user(uid)["balance"] += int(amt)
     save_data(users)
-    await update.message.reply_text("✅ Coins added successfully")
+    await update.message.reply_text("✅ Coins added")
 
 async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_user.id) != ADMIN_ID:
@@ -126,7 +128,7 @@ async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid, amt = context.args
     get_user(uid)["balance"] -= int(amt)
     save_data(users)
-    await update.message.reply_text("❌ Coins removed successfully")
+    await update.message.reply_text("❌ Coins removed")
 
 # ---------- BOT START ----------
 
