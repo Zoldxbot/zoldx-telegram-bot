@@ -13,9 +13,7 @@ DATA_FILE = "users.json"
 DAY = 86400  # 24 hours
 
 # 🌐 BSC TESTNET
-w3 = Web3(Web3.HTTPProvider(
-    "https://data-seed-prebsc-1-s1.binance.org:8545"
-))
+w3 = Web3(Web3.HTTPProvider("https://data-seed-prebsc-1-s1.binance.org:8545"))
 
 # ---------- DATABASE ----------
 def load_data():
@@ -139,6 +137,8 @@ async def setwallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("✅ Wallet saved")
 
+
+# ✅ MERGED VERIFY FUNCTION
 async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
     u = get_user(uid)
@@ -149,18 +149,23 @@ async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    balance = w3.eth.get_balance(u["wallet"])
+    try:
+        # 🔗 Original logic from your 1️⃣ code
+        balance = w3.eth.get_balance(u["wallet"])
+        balance_in_eth = w3.from_wei(balance, 'ether')  # Optional: display in BNB
 
-    if balance > 0:
-        u["balance"] += 200
-        save_data(users)
-        await update.message.reply_text(
-            "✅ Faucet verified!\n+200 ZOLDX"
-        )
-    else:
-        await update.message.reply_text(
-            "❌ No testnet funds found"
-        )
+        if balance > 0:
+            u["balance"] += 200
+            save_data(users)
+            await update.message.reply_text(
+                f"✅ Faucet verified!\n+200 ZOLDX\n💰 Wallet Balance: {balance_in_eth} BNB"
+            )
+        else:
+            await update.message.reply_text(
+                f"❌ No faucet funds found\n💰 Wallet Balance: {balance_in_eth} BNB"
+            )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error checking wallet:\n{e}")
 
 # ---------- ADMIN COMMANDS ----------
 
