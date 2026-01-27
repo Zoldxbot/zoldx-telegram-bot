@@ -58,10 +58,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/balance - Check balance\n"
         "/airdrop - Daily free coins\n"
         "/invite - Referral link\n"
-        "/setwallet <address>\n"
+        "/setwallet <address> - Save wallet\n"
         "/verify - Faucet verification\n"
         "/leaderboard - Top users\n"
-        "/withdraw amount"
+        "/withdraw amount - Request withdraw"
     )
 
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -81,15 +81,12 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u["balance"] += 50
     u["airdrop_time"] = now
     save_data(users)
-
     await update.message.reply_text("🎁 Daily airdrop received: +50 ZOLDX")
 
 async def invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
     link = f"https://t.me/ZoldX_bot?start={uid}"
-    await update.message.reply_text(
-        f"👥 Invite friends & earn 20 ZOLDX:\n{link}"
-    )
+    await update.message.reply_text(f"👥 Invite friends & earn 20 ZOLDX:\n{link}")
 
 async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top = sorted(users.items(), key=lambda x: x[1]["balance"], reverse=True)[:10]
@@ -100,14 +97,12 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
-
     if not context.args:
         await update.message.reply_text("❌ Use: /withdraw amount")
         return
 
     amount = int(context.args[0])
     u = get_user(uid)
-
     if amount > u["balance"]:
         await update.message.reply_text("❌ Insufficient balance")
         return
@@ -115,26 +110,19 @@ async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u["balance"] -= amount
     u["withdraw"] += amount
     save_data(users)
-
-    await update.message.reply_text(
-        f"✅ Withdraw request sent: {amount} ZOLDX\nAdmin will review"
-    )
+    await update.message.reply_text(f"✅ Withdraw request sent: {amount} ZOLDX\nAdmin will review")
 
 # ---------- WALLET SYSTEM ----------
 
 async def setwallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
-
     if not context.args:
-        await update.message.reply_text(
-            "❌ Use:\n/setwallet 0xABC..."
-        )
+        await update.message.reply_text("❌ Use: /setwallet 0xYourWalletAddress")
         return
 
     wallet = context.args[0]
     users[uid]["wallet"] = wallet
     save_data(users)
-
     await update.message.reply_text("✅ Wallet saved")
 
 async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -142,26 +130,18 @@ async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = get_user(uid)
 
     if not u["wallet"]:
-        await update.message.reply_text(
-            "❌ First set wallet:\n/setwallet 0xABC..."
-        )
+        await update.message.reply_text("❌ First set wallet:\n/setwallet 0xYourWalletAddress")
         return
 
     try:
-        # 🔗 Integrated code from 1️⃣
         balance = w3.eth.get_balance(u["wallet"])
-        balance_in_eth = w3.from_wei(balance, 'ether')  # Convert Wei to BNB
-
+        balance_in_bnb = w3.from_wei(balance, "ether")
         if balance > 0:
             u["balance"] += 200
             save_data(users)
-            await update.message.reply_text(
-                f"✅ Faucet verified!\n+200 ZOLDX\n💰 Wallet Balance: {balance_in_eth} BNB"
-            )
+            await update.message.reply_text(f"✅ Faucet verified!\n+200 ZOLDX\n💰 Wallet Balance: {balance_in_bnb} BNB")
         else:
-            await update.message.reply_text(
-                f"❌ No testnet funds found\n💰 Wallet Balance: {balance_in_eth} BNB"
-            )
+            await update.message.reply_text(f"❌ No faucet funds found\n💰 Wallet Balance: {balance_in_bnb} BNB")
     except Exception as e:
         await update.message.reply_text(f"❌ Error checking wallet:\n{e}")
 
