@@ -4,9 +4,9 @@ import time
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# 🔐 NEW BOT TOKEN (UPDATED)
+# 🔐 BOT TOKEN
 BOT_TOKEN = "8065897916:AAFaXXs2fQaYHz9XuYxnSbRtSJEb6zPR1z8"
-ADMIN_ID = "8065897916"   # ✅ YOUR ADMIN ID
+ADMIN_ID = "8065897916"
 
 DATA_FILE = "users.json"
 DAY = 86400  # 24 hours
@@ -20,7 +20,7 @@ def load_data():
 
 def save_data(data):
     with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
 
 users = load_data()
 
@@ -30,7 +30,8 @@ def get_user(uid):
             "balance": 0,
             "airdrop_time": 0,
             "referrals": 0,
-            "withdraw": 0
+            "withdraw": 0,
+            "wallet": ""
         }
     return users[uid]
 
@@ -53,6 +54,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/balance - Check balance\n"
         "/airdrop - Daily free coins\n"
         "/invite - Referral link\n"
+        "/setwallet <address>\n"
         "/leaderboard - Top users\n"
         "/withdraw amount"
     )
@@ -93,6 +95,7 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
+
     if not context.args:
         await update.message.reply_text("❌ Use: /withdraw amount")
         return
@@ -110,6 +113,26 @@ async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"✅ Withdraw request sent: {amount} ZOLDX\nAdmin will review"
+    )
+
+# ---------- WALLET COMMAND ----------
+
+async def setwallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    u = get_user(uid)
+
+    if not context.args:
+        await update.message.reply_text(
+            "❌ Use:\n/setwallet 0xABC..."
+        )
+        return
+
+    wallet = context.args[0]
+    u["wallet"] = wallet
+    save_data(users)
+
+    await update.message.reply_text(
+        f"✅ Wallet saved:\n{wallet}"
     )
 
 # ---------- ADMIN COMMANDS ----------
@@ -140,6 +163,7 @@ app.add_handler(CommandHandler("airdrop", airdrop))
 app.add_handler(CommandHandler("invite", invite))
 app.add_handler(CommandHandler("leaderboard", leaderboard))
 app.add_handler(CommandHandler("withdraw", withdraw))
+app.add_handler(CommandHandler("setwallet", setwallet))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(CommandHandler("remove", remove))
 
