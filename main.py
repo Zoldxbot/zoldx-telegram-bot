@@ -3,6 +3,7 @@ import os
 import time
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from web3 import Web3
 
 # 🔐 BOT TOKEN
 BOT_TOKEN = "8065897916:AAFaXXs2fQaYHz9XuYxnSbRtSJEb6zPR1z8"
@@ -10,6 +11,11 @@ ADMIN_ID = "8065897916"
 
 DATA_FILE = "users.json"
 DAY = 86400  # 24 hours
+
+# 🌐 BSC TESTNET (SAFE)
+w3 = Web3(
+    Web3.HTTPProvider("https://data-seed-prebsc-1-s1.binance.org:8545")
+)
 
 # ---------- DATABASE ----------
 def load_data():
@@ -55,6 +61,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/airdrop - Daily free coins\n"
         "/invite - Referral link\n"
         "/setwallet <address>\n"
+        "/verify - Blockchain verify\n"
         "/leaderboard - Top users\n"
         "/withdraw amount"
     )
@@ -115,7 +122,7 @@ async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✅ Withdraw request sent: {amount} ZOLDX\nAdmin will review"
     )
 
-# ---------- WALLET COMMAND ----------
+# ---------- WALLET ----------
 
 async def setwallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
@@ -127,15 +134,48 @@ async def setwallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    wallet = context.args[0]
-    u["wallet"] = wallet
+    u["wallet"] = context.args[0]
     save_data(users)
 
-    await update.message.reply_text(
-        f"✅ Wallet saved:\n{wallet}"
-    )
+    await update.message.reply_text("✅ Wallet saved")
 
-# ---------- ADMIN COMMANDS ----------
+# ---------- VERIFY (BLOCKCHAIN) ----------
+
+async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    u = get_user(uid)
+
+    if not u["wallet"]:
+        await update.message.reply_text(
+            "❌ Wallet set nahi hai\nUse:\n/setwallet 0xABC..."
+        )
+        return
+
+    try:
+        balance = w3.eth.get_balance(u["wallet"])
+        bnb = w3.from_wei(balance, 'ether')
+
+        if balance > 0:
+            u["balance"] += 200
+            save_data(users)
+
+            await update.message.reply_text(
+                f"✅ Blockchain verified!\n"
+                f"+200 ZOLDX\n"
+                f"💰 Wallet Balance: {bnb} BNB (testnet)"
+            )
+        else:
+            await update.message.reply_text(
+                f"❌ No testnet BNB found\n"
+                f"💰 Balance: {bnb} BNB"
+            )
+
+    except:
+        await update.message.reply_text(
+            "❌ Invalid wallet or network error"
+        )
+
+# ---------- ADMIN ----------
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_user.id) != ADMIN_ID:
@@ -164,6 +204,7 @@ app.add_handler(CommandHandler("invite", invite))
 app.add_handler(CommandHandler("leaderboard", leaderboard))
 app.add_handler(CommandHandler("withdraw", withdraw))
 app.add_handler(CommandHandler("setwallet", setwallet))
+app.add_handler(CommandHandler("verify", verify))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(CommandHandler("remove", remove))
 
