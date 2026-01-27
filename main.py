@@ -137,8 +137,6 @@ async def setwallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("✅ Wallet saved")
 
-
-# ✅ MERGED VERIFY FUNCTION
 async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
     u = get_user(uid)
@@ -150,9 +148,9 @@ async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        # 🔗 Original logic from your 1️⃣ code
+        # 🔗 Integrated code from 1️⃣
         balance = w3.eth.get_balance(u["wallet"])
-        balance_in_eth = w3.from_wei(balance, 'ether')  # Optional: display in BNB
+        balance_in_eth = w3.from_wei(balance, 'ether')  # Convert Wei to BNB
 
         if balance > 0:
             u["balance"] += 200
@@ -162,7 +160,7 @@ async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         else:
             await update.message.reply_text(
-                f"❌ No faucet funds found\n💰 Wallet Balance: {balance_in_eth} BNB"
+                f"❌ No testnet funds found\n💰 Wallet Balance: {balance_in_eth} BNB"
             )
     except Exception as e:
         await update.message.reply_text(f"❌ Error checking wallet:\n{e}")
