@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import threading
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from web3 import Web3
@@ -208,4 +209,18 @@ app.add_handler(CommandHandler("verify", verify))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(CommandHandler("remove", remove))
 
-app.run_polling()
+# ────────────────────────────────────────────────
+#     Yeh important change hai (threading wala)
+# ────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    # Telegram bot ko background thread mein chala rahe hain
+    threading.Thread(target=app.run_polling, daemon=True).start()
+    
+    print("Telegram Bot chal raha hai... (background mein)")
+    
+    # Agar sirf bot chalana hai to yahan ruk jao
+    # Dashboard ke liye alag file (dashboard.py) use kar rahe hain
+    # Isliye yahan kuch aur nahi likh rahe
+    while True:
+        time.sleep(3600)  # program ko band hone se rokne ke liye
